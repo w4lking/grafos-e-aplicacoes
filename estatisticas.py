@@ -1,33 +1,43 @@
-def floyd_warshall(matriz):
-    n = len(matriz)
-    dist = [row[:] for row in matriz]
+from floyd_warshall import floyd_warshall 
 
-    for k in range(n):
-        if k % 10 == 0:  # printa a cada 10 passos
-            print(f"Processando k = {k}/{n}")
-        for i in range(n):
-            for j in range(n):
-                if dist[i][j] > dist[i][k] + dist[k][j]:
-                    dist[i][j] = dist[i][k] + dist[k][j]
-    return dist
-
-def calcular_estatisticas(matriz, arestas, arcos, vertices_requeridos):
+def calcular_grau(matriz, arestas, arcos):
     n = len(matriz)
     grau = [0] * n
 
+    # Arestas não direcionadas
     for u, v, _ in arestas:
         grau[u] += 1
         grau[v] += 1
 
+    # Arcos direcionados (grau total: entrada + saída)
     for u, v, _ in arcos:
-        grau[u] += 1
+        grau[u] += 1  # grau de saída
+        grau[v] += 1  # grau de entrada
 
-    densidade = (len(arestas) + len(arcos)) / (n * (n - 1))
+    return grau 
+
+def calcular_estatisticas(matriz, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos):
+    n = len(matriz)
+    grau = [0] * n
+
+    # Arestas não direcionadas
+    for u, v, _ in arestas:
+        grau[u] += 1
+        grau[v] += 1
+
+    # Arcos direcionados (grau total: entrada + saída)
+    for u, v, _ in arcos:
+        grau[u] += 1  # grau de saída
+        grau[v] += 1  # grau de entrada
+
+    # Densidade: ajustando para considerar arcos como dirigidos
+    max_arestas_possiveis = n * (n - 1)  # sem laços
+    densidade = (len(arestas) + len(arcos)) / max_arestas_possiveis if n > 1 else 0
+
     grau_min = min(grau)
     grau_max = max(grau)
 
     distancias = floyd_warshall(matriz)
-
     soma_caminhos = 0
     num_caminhos = 0
     diametro = 0
@@ -39,18 +49,19 @@ def calcular_estatisticas(matriz, arestas, arcos, vertices_requeridos):
                 num_caminhos += 1
                 diametro = max(diametro, distancias[i][j])
 
-    caminho_medio = soma_caminhos / num_caminhos if num_caminhos > 0 else float('inf')
+    caminho_medio = soma_caminhos / num_caminhos if num_caminhos else float('inf')
 
     return {
-        "n_vertices": n,
-        "n_arestas": len(arestas),
-        "n_arcos": len(arcos),
-        "n_vertices_requeridos": len(vertices_requeridos),
-        "n_arestas_requeridas": len(arestas),
-        "n_arcos_requeridos": len(arcos),
-        "densidade": densidade,
-        "grau_min": grau_min,
-        "grau_max": grau_max,
-        "caminho_medio": caminho_medio,
-        "diametro": diametro
+        "Quantidade de vértices": n,
+        "Quantidade de arestas": len(arestas),
+        "Quantidade de arcos": len(arcos),
+        "Quantidade de vértices requeridos": len(vertices_requeridos),
+        "Quantidade de arestas requeridas": len(arestas_requeridas),
+        "Quantidade de arcos requeridos": len(arcos_requeridos),
+        "Densidade do grafo": round(densidade, 4),
+        "Grau mínimo": grau_min,
+        "Grau máximo": grau_max,
+        "Caminho médio": round(caminho_medio, 4),
+        "Diâmetro": diametro
     }
+
