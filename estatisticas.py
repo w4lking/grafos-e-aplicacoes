@@ -1,7 +1,7 @@
-from floyd_warshall import floyd_warshall 
+from algoritmos.floyd_warshall import floyd_warshall 
 import math
 
-def calcular_estatisticas_sem_networkx(matriz, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos, n_vertices):
+def calcular_estatisticas_sem_networkx(matriz, n_vertices, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos):
     direcionado = len(arcos) > 0
     total_arestas = len(arestas)
     total_arcos = len(arcos)
@@ -50,15 +50,17 @@ def calcular_estatisticas_sem_networkx(matriz, arestas, arcos, vertices_requerid
                             intermediacao[k] += 1
     intermediacao_media = sum(intermediacao) / n_vertices
 
-    print(f"Quantidade de vértices: {n_vertices}")
+    print(f"Quantidade de nós: {n_vertices}")
     print(f"Quantidade de arestas: {total_arestas}")
     print(f"Quantidade de arcos: {total_arcos}")
-    print(f"Quantidade de vértices requeridos: {len(vertices_requeridos)}")
+    print(f"Quantidade de nós requeridos: {len(vertices_requeridos)}")
     print(f"Quantidade de arestas requeridas: {len(arestas_requeridas)}")
     print(f"Quantidade de arcos requeridos: {len(arcos_requeridos)}")
     print(f"Densidade do grafo: {densidade:.4f}")
-    print(f"Grau mínimo dos vértices: {grau_min}")
-    print(f"Grau máximo dos vértices: {grau_max}")
+    print(f"Grau mínimo dos nós: {grau_min}")
+    print(f"Grau máximo dos nós: {grau_max}")
+    print(f"Grau médio dos nós: {sum(graus) / n_vertices:.4f}")
+    print(f"Intermediação: {intermediacao}")
     print(f"Intermediação média: {intermediacao_media:.4f}")
     print(f"Caminho médio: {caminho_medio:.4f}")
     print(f"Diâmetro: {diametro}")

@@ -76,6 +76,7 @@ def parse_dat_file(caminho_arquivo):
     arestas_requeridas = ler_arestas(secao_linhas["ReE"])
     arcos_requeridos = ler_arcos(secao_linhas["ReA"])
 
+
     matriz = [[float('inf')] * n_vertices for _ in range(n_vertices)]
     for i in range(n_vertices):
         matriz[i][i] = 0
@@ -86,4 +87,8 @@ def parse_dat_file(caminho_arquivo):
     for u, v, custo in arcos:
         matriz[u][v] = custo
 
-    return matriz, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos, n_vertices, n_arestas, n_arcos
+        
+
+    return matriz, n_vertices, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos, 
+
+
