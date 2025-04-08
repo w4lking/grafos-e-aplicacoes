@@ -87,22 +87,3 @@ def parse_dat_file(caminho_arquivo):
         matriz[u][v] = custo
 
     return matriz, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos, n_vertices, n_arestas, n_arcos
-
-# 📁 Loop para todos os arquivos .dat na pasta
-pasta = "selected_instances"
-for nome_arquivo in os.listdir(pasta):
-    if nome_arquivo.endswith(".dat"):
-        caminho = os.path.join(pasta, nome_arquivo)
-        print(f"\n📄 Lendo arquivo: {nome_arquivo}")
-
-        try:
-            matriz, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos, n_vertices, n_arestas, n_arcos = parse_dat_file(caminho)
-
-            print("Número de Vértices:", n_vertices)
-            print("Número de Arestas:", n_arestas)
-            print("Número de Arcos:", n_arcos)
-            print("Número de Vértices Requeridos:", len(vertices_requeridos))
-            print("Número de Arestas Requeridas:", len(arestas_requeridas))
-            print("Número de Arcos Requeridos:", len(arcos_requeridos))
-        except Exception as e:
-            print(f"❌ Erro ao processar {nome_arquivo}: {e}")
