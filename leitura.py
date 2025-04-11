@@ -1,4 +1,3 @@
-import os
 import re
 
 # Funções de leitura (as mesmas que você já fez)
