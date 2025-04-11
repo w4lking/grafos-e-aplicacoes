@@ -1,7 +1,7 @@
 # GCC262 - Grafos e Aplicações  
 ## Trabalho Prático  
 **Professor:** Mayron César O. Moreira  
-**Aluno:** Layon Walker e Marcos Vinicius Matias
+**Alunos:** Layon Walker e Marcos Vinicius Matias
 
 ---
 
@@ -54,20 +54,20 @@ source venv/bin/activate
 Instale as dependências:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requisitos_projeto_grafos.txt
 ```
 
 ---
 
 ## 💻 Como Executar o Código
 
-Para rodar a análise no modo script:
+Para rodar a análise em script:
 
 ```bash
 python main.py
 ```
 
-Ou utilize o ambiente interativo com o Jupyter Notebook:
+Ou utilize o ambiente interativo com o Jupyter Notebook (Mais recomendado):
 
 ```bash
 jupyter notebook
