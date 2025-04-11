@@ -1,5 +1,4 @@
 from algoritmos.floyd_warshall import floyd_warshall 
-import math
 
 def calcular_estatisticas_sem_networkx(matriz, n_vertices, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos):
     direcionado = len(arcos) > 0
