@@ -1,7 +1,7 @@
 import os
-from leitura import parse_dat_file
-from estatisticas import calcular_estatisticas_sem_networkx
-from grafo import gerar_grafo_como_lista_adjacencia, desenhar_grafo_no_notebook
+from fase1.leitura import parse_dat_file
+from fase1.estatisticas import calcular_estatisticas_sem_networkx
+from fase1.grafo import gerar_grafo_como_lista_adjacencia, desenhar_grafo_no_notebook
 from referencia import roteirizacao_referencia  # Importa a roteirização de referência
 
 # Função principal para processamento dos arquivos .dat

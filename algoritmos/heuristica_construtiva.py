@@ -1,5 +1,5 @@
-from leitura import ler_arquivo
-from grafo import construir_grafo
+from fase1.leitura import ler_arquivo
+from fase1.grafo import construir_grafo
 from algoritmos.floyd_warshall import floyd_warshall
 
 def construir_solucao(nome_arquivo):
