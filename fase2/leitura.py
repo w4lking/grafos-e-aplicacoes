@@ -1,45 +1,118 @@
 import re
+import math
 
 def ler_cabecalho(linhas):
-    """Lê o cabeçalho do arquivo e extrai número de vértices, arestas e arcos."""
-    cabecalho = '\n'.join(linhas[:30])  # Considera até 30 linhas para garantir leitura
-    n_vertices = int(re.search(r"#Nodes:\s+(\d+)", cabecalho).group(1))
-    n_arestas = int(re.search(r"#Edges:\s+(\d+)", cabecalho).group(1))
-    n_arcos = int(re.search(r"#Arcs:\s+(\d+)", cabecalho).group(1))
-    return n_vertices, n_arestas, n_arcos
+    """Lê o cabeçalho do arquivo e extrai número de vértices, arestas, arcos, capacidade e depósito."""
+    cabecalho = '\n'.join(linhas[:30])
+    n_vertices = int(re.search(r"#Nodes:\s*(\d+)", cabecalho).group(1))
+    n_arestas = int(re.search(r"#Edges:\s*(\d+)", cabecalho).group(1)) # Arestas opcionais (total de edges)
+    n_arcos = int(re.search(r"#Arcs:\s*(\d+)", cabecalho).group(1)) # Arcos opcionais (total de arcs)
+    
+    capacidade_match = re.search(r"Capacity:\s*(\d+)", cabecalho)
+    capacidade = int(capacidade_match.group(1)) if capacidade_match else -1 # Retorna -1 se não encontrar
 
-def ler_vertices_requeridos(linhas):
-    """Extrai os vértices requeridos a partir da seção ReN."""
-    vertices = set()
-    for linha in linhas:
-        if linha.startswith("N"):
-            match = re.match(r"N(\d+)", linha)
-            if match:
-                vertices.add(int(match.group(1)) - 1)
-    return vertices
+    depot_node_match = re.search(r"Depot Node:\s*(\d+)", cabecalho)
+    # O depósito é 1-indexed no arquivo, convertemos para 0-indexed para uso interno
+    depot_node = int(depot_node_match.group(1)) - 1 if depot_node_match else 0 
+    
+    return n_vertices, n_arestas, n_arcos, capacidade, depot_node
 
-def ler_ligacoes(linhas):
-    """Lê arestas ou arcos de uma lista de linhas."""
-    ligacoes = []
-    for linha in linhas:
+def ler_vertices_requeridos_com_detalhes(linhas_secao_ren):
+    """Extrai os vértices requeridos com suas demandas e custos de serviço."""
+    vertices_detalhados = []
+    linhas_dados_ren = linhas_secao_ren
+    # Pula a linha de cabeçalho da seção se ela estiver presente
+    if linhas_dados_ren and "DEMAND" in linhas_dados_ren[0] and "S. COST" in linhas_dados_ren[0]:
+        linhas_dados_ren = linhas_dados_ren[1:]
+
+    for linha in linhas_dados_ren:
         partes = linha.split()
-        if len(partes) >= 4:
+        if len(partes) >= 3 and partes[0].startswith("N"):
             try:
-                u = int(partes[1]) - 1
-                v = int(partes[2]) - 1
-                custo = float(partes[3])
-                ligacoes.append((u, v, custo))
+                id_no_str = partes[0][1:] # Remove 'N'
+                id_no_idx = int(id_no_str) - 1 # Converte para 0-indexed
+                demanda = int(partes[1])
+                custo_servico = int(partes[2])
+                vertices_detalhados.append({
+                    "no_idx": id_no_idx,
+                    "demanda": demanda,
+                    "custo_servico": custo_servico
+                })
             except ValueError:
+                print(f"Aviso: Não foi possível parsear a linha ReN: {linha}")
                 continue
+    return vertices_detalhados
+
+def ler_ligacoes_requeridas_com_detalhes(linhas_secao, tipo_ligacao="aresta_req"):
+    """Lê arestas ou arcos requeridos com custo de travessia, demanda e custo de serviço."""
+    ligacoes_detalhadas = []
+    linhas_dados = linhas_secao
+    # Pula a linha de cabeçalho da seção se ela estiver presente
+    if linhas_dados and "From N." in linhas_dados[0]:
+         linhas_dados = linhas_dados[1:]
+
+    for linha in linhas_dados:
+        partes = linha.split()
+        if len(partes) >= 6: # ID, From, To, T.COST, DEMAND, S.COST
+            try:
+                u = int(partes[1]) - 1 # Converte para 0-indexed
+                v = int(partes[2]) - 1 # Converte para 0-indexed
+                custo_travessia = float(partes[3])
+                demanda = int(partes[4])
+                custo_servico = int(partes[5])
+                ligacoes_detalhadas.append({
+                    "u": u, "v": v,
+                    "custo_travessia": custo_travessia,
+                    "demanda": demanda,
+                    "custo_servico": custo_servico,
+                    "tipo": tipo_ligacao
+                })
+            except ValueError:
+                print(f"Aviso: Não foi possível parsear a linha {tipo_ligacao}: {linha}")
+                continue
+    return ligacoes_detalhadas
+
+def ler_ligacoes_opcionais(linhas_secao):
+    """Lê arestas ou arcos opcionais com apenas o custo de travessia."""
+    ligacoes = []
+    linhas_dados = linhas_secao
+    # Pula a linha de cabeçalho da seção se ela estiver presente
+    if linhas_dados and "FROM N." in linhas_dados[0].upper():
+         linhas_dados = linhas_dados[1:]
+
+    for linha in linhas_dados:
+        partes = linha.split()
+        idx_offset = 0
+        # Verifica se o primeiro elemento é um ID não numérico (ex: 'NrA1')
+        if partes and not partes[0].replace('.','',1).isdigit():
+            idx_offset = 1
+            if len(partes) < 4: # Se tem ID, precisa de pelo menos 4 partes (ID, u, v, custo)
+                continue
+        elif len(partes) < 3: # Se não tem ID, precisa de pelo menos 3 partes (u, v, custo)
+            continue
+        
+        try:
+            u = int(partes[idx_offset + 0]) - 1 # Converte para 0-indexed
+            v = int(partes[idx_offset + 1]) - 1 # Converte para 0-indexed
+            custo = float(partes[idx_offset + 2])
+            ligacoes.append((u, v, custo))
+        except ValueError:
+            print(f"Aviso: Não foi possível parsear a linha de ligação opcional: {linha}")
+            continue
     return ligacoes
 
 def parse_dat_file(caminho_arquivo):
+    """
+    Função principal para parsear o arquivo .dat e extrair todas as informações do grafo.
+    Retorna: matriz de adjacência, número de vértices, capacidade do veículo,
+    índice do depósito, e listas detalhadas de serviços requeridos e ligações opcionais.
+    """
     with open(caminho_arquivo, 'r') as arquivo:
         linhas = [linha.strip() for linha in arquivo if linha.strip()]
 
-    n_vertices, n_arestas, n_arcos = ler_cabecalho(linhas)
+    n_vertices, n_arestas_opcionais_total, n_arcos_opcionais_total, capacidade_veiculo, depot_idx = ler_cabecalho(linhas)
 
-    # Armazenamento por seções
+    # Armazeno por seções
     secoes = {
         "ReN": [],
         "ReE": [],
@@ -63,26 +136,42 @@ def parse_dat_file(caminho_arquivo):
         elif secao_atual:
             secoes[secao_atual].append(linha)
 
-    # Coleta dos dados
-    vertices_requeridos = ler_vertices_requeridos(secoes["ReN"])
-    arestas_requeridas = ler_ligacoes(secoes["ReE"])
-    arcos_requeridos = ler_ligacoes(secoes["ReA"])
-    arestas_opcionais = ler_ligacoes(secoes["EDGE"])
-    arcos_opcionais = ler_ligacoes(secoes["ARC"])
-
-    # Concatenação final de arestas e arcos
-    arestas = arestas_requeridas + arestas_opcionais
-    arcos = arcos_requeridos + arcos_opcionais
+    # Coleta dos dados mais detalhados
+    vertices_requeridos_detalhes = ler_vertices_requeridos_com_detalhes(secoes["ReN"])
+    arestas_requeridas_detalhes = ler_ligacoes_requeridas_com_detalhes(secoes["ReE"], "aresta_req")
+    arcos_requeridos_detalhes = ler_ligacoes_requeridas_com_detalhes(secoes["ReA"], "arco_req")
+    arestas_opcionais_travessia = ler_ligacoes_opcionais(secoes["EDGE"])
+    arcos_opcionais_travessia = ler_ligacoes_opcionais(secoes["ARC"])
 
     # Geração da matriz de adjacência (com float('inf') para não conexões)
-    matriz = [[float('inf')] * n_vertices for _ in range(n_vertices)]
+    matriz = [[math.inf] * n_vertices for _ in range(n_vertices)]
     for i in range(n_vertices):
-        matriz[i][i] = 0
+        matriz[i][i] = 0 # Custo zero para ir de um nó para ele mesmo. Posso mudar isso dps, Tarko ;|
 
-    for u, v, custo in arestas:
-        matriz[u][v] = custo
-        matriz[v][u] = custo
-    for u, v, custo in arcos:
-        matriz[u][v] = custo  # Direcionado
+    # Adicionar custos de travessia das arestas requeridas
+    for aresta_req in arestas_requeridas_detalhes:
+        u, v, custo_t = aresta_req["u"], aresta_req["v"], aresta_req["custo_travessia"]
+        matriz[u][v] = min(matriz[u][v], custo_t) # Usa min para lidar com múltiplas arestas/arcos
+        matriz[v][u] = min(matriz[v][u], custo_t) # Arestas são bidirecionais
 
-    return matriz, n_vertices, arestas, arcos, vertices_requeridos, arestas_requeridas, arcos_requeridos
+    # Adicionar custos de travessia das arestas opcionais
+    for u, v, custo_t in arestas_opcionais_travessia:
+        matriz[u][v] = min(matriz[u][v], custo_t)
+        matriz[v][u] = min(matriz[v][u], custo_t)
+
+    # Adicionar custos de travessia dos arcos requeridos
+    for arco_req in arcos_requeridos_detalhes:
+        u, v, custo_t = arco_req["u"], arco_req["v"], arco_req["custo_travessia"]
+        matriz[u][v] = min(matriz[u][v], custo_t) # Arcos são direcionais
+
+    # Adicionar custos de travessia dos arcos opcionais
+    for u, v, custo_t in arcos_opcionais_travessia:
+        matriz[u][v] = min(matriz[u][v], custo_t) # Arcos são direcionais
+
+    # Retorna todas as informações parseadas
+    return (matriz, n_vertices, capacidade_veiculo, depot_idx,
+            vertices_requeridos_detalhes, 
+            arestas_requeridas_detalhes, 
+            arcos_requeridos_detalhes,
+            arestas_opcionais_travessia, 
+            arcos_opcionais_travessia)
