@@ -1,10 +1,6 @@
 # fase2/main.py
 import os
 import sys
-import time
-import math # Para uso em Dijkstra ou no seu algoritmo
-import heapq # Para a fila de prioridade de Dijkstra
-
 
 current_file_dir = os.path.dirname(os.path.abspath(__file__)) # Diretório de main.py (fase2/)
 project_root_dir = os.path.dirname(current_file_dir) # Diretório pai (GRAFOS-E-APLICACOES/)
