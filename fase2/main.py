@@ -2,8 +2,8 @@
 import os
 import sys
 import time
-import math # Para uso em Dijkstra ou no seu algoritmo
-import heapq # Para a fila de prioridade de Dijkstra (ainda necessário para Dijkstra individual)
+import math # Para uso em Dijkstra
+import heapq # Para a fila de prioridade de Dijkstra
 
 current_file_dir = os.path.dirname(os.path.abspath(__file__)) # Diretório de main.py (fase2/)
 project_root_dir = os.path.dirname(current_file_dir) # Diretório pai (GRAFOS-E-APLICACOES/)
@@ -11,7 +11,7 @@ sys.path.insert(0, project_root_dir) # Adiciona ao início do path de busca de m
 
 # importando módulos
 from leitura import parse_dat_file
-from algoritmos.dijkstra import dijkstra # Ainda importamos, mas será menos usado
+from algoritmos.dijkstra import dijkstra # Ainda importa
 from algoritmos.floyd_warshall import floyd_warshall # Importado para o APSP
 from algoritmos.path_scanning import meu_algoritmo_construtivo
 
@@ -23,34 +23,36 @@ def main():
     print(f"Procurando instâncias em: {pasta_instancias}")
 
     arquivos_para_processar = []
-    salvar_solucao_para_este_arquivo = True # Flag para controlar o salvamento
+    salvar_solucao_para_este_arquivo = True # Flag de salvamento
 
     # --- Opção de processamento ---
-    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 't' ou 'e'): ").strip().lower()
+    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 'todos' ou 'especifico'): ").strip().lower()
     
-    if escolha_processamento == 't' or escolha_processamento == 'T':
+    if escolha_processamento == 't' or escolha_processamento == 'todos' or escolha_processamento == 'tudo':
         print("Modo: Processando todos os arquivos .dat na pasta...")
         for arquivo_nome in os.listdir(pasta_instancias):
             if arquivo_nome.endswith(".dat"):
                 arquivos_para_processar.append(arquivo_nome)
+        # No modo 'todos', sempre salvamos a solução
         salvar_solucao_para_este_arquivo = True 
-    elif escolha_processamento == 'e' or escolha_processamento == 'E':
+    elif escolha_processamento == 'e' or escolha_processamento == 'especifico':
         arquivo_especifico_nome = input("Digite o NOME do arquivo .dat específico (ex: BHW1.dat): ").strip()
         if not arquivo_especifico_nome.lower().endswith(".dat"):
-            arquivo_especifico_nome += ".dat"  
+            arquivo_especifico_nome += ".dat" 
+        
         caminho_arquivo_especifico = os.path.join(pasta_instancias, arquivo_especifico_nome)
         if os.path.exists(caminho_arquivo_especifico):
             arquivos_para_processar.append(arquivo_especifico_nome)
             print(f"Modo: Processando arquivo específico: {arquivo_especifico_nome}")
             
-            
+            # Pergunta se deseja salvar a solução para este arquivo específico
             salvar_escolha = input(f"Deseja salvar a solução para '{arquivo_especifico_nome}'? (s/n): ").strip().lower()
             salvar_solucao_para_este_arquivo = (salvar_escolha == 's')
         else:
             print(f"ERRO: Arquivo '{arquivo_especifico_nome}' não encontrado em '{pasta_instancias}'. Encerrando.")
-            return 
+            return # Sai da função main se o arquivo não for encontrado
     else:
-        print("Opção inválida. Por favor, digite 't' ou 'e'. Encerrando.")
+        print("Opção inválida. Por favor, digite 'todos' ou 'especifico'. Encerrando.")
         return
 
     # --- Loop de processamento ---
@@ -81,15 +83,15 @@ def main():
             continue
         
         print(f"  Dados lidos: {n_vertices} vértices, Capacidade={capacidade_veiculo}, Depósito={depot_idx+1}")
-        print(f"  DEBUG Main: {len(vertices_requeridos_detalhes)} ReN, {len(arestas_requeridas_detalhes)} ReE, {len(arcos_requeridos_detalhes)} ReA")
-        print(f"  DEBUG Main: {len(arestas_opcionais_travessia)} EDGE, {len(arcos_opcionais_travessia)} ARC")
+        # print(f"  DEBUG Main: {len(vertices_requeridos_detalhes)} ReN, {len(arestas_requeridas_detalhes)} ReE, {len(arcos_requeridos_detalhes)} ReA")
+        # print(f"  DEBUG Main: {len(arestas_opcionais_travessia)} EDGE, {len(arcos_opcionais_travessia)} ARC")
 
         # NOVO PASSO: Pré-calcular todas as distâncias de caminho mínimo com Floyd-Warshall
-        print(f"  DEBUG Main: Calculando todas as distâncias de caminho mínimo (Floyd-Warshall) para {n_vertices} vértices...")
+        print(f"  Calculando todas as distâncias de caminho mínimo (Floyd-Warshall) para {n_vertices} vértices...")
         inicio_floyd = time.monotonic_ns()
         distancias_apsp = floyd_warshall(matriz_adj)
         fim_floyd = time.monotonic_ns()
-        print(f"  DEBUG Main: Cálculo de todas as distâncias concluído em {(fim_floyd - inicio_floyd) / 1e9:.4f}s.")
+        print(f"  Cálculo de todas as distâncias concluído em {(fim_floyd - inicio_floyd) / 1e9:.4f}s.")
 
         # 2. Preparar a lista unificada de serviços
         todos_os_servicos_pendentes = []
@@ -137,27 +139,27 @@ def main():
         print(f"  Total de serviços requeridos a processar: {len(todos_os_servicos_pendentes)}")
 
         # DEBUG: Verificando a matriz de distâncias APSP
-        print("  DEBUG Main: Amostra da matriz de distâncias APSP (primeiras 5x5 células):")
-        for r_idx in range(min(5, n_vertices)):
-            row_str = "    "
-            for c_idx in range(min(5, n_vertices)):
-                val = distancias_apsp[r_idx][c_idx]
-                if val == math.inf:
-                    row_str += "inf "
-                else:
-                    row_str += f"{val:<4.0f}" 
-            print(row_str)
+        # print("  DEBUG Main: Amostra da matriz de distâncias APSP (primeiras 5x5 células):")
+        # for r_idx in range(min(5, n_vertices)):
+        #     row_str = "    "
+        #     for c_idx in range(min(5, n_vertices)):
+        #         val = distancias_apsp[r_idx][c_idx]
+        #         if val == math.inf:
+        #             row_str += "inf "
+        #         else:
+        #             row_str += f"{val:<4.0f}" 
+        #     print(row_str)
         
-        print("  DEBUG Main: Verificando todos_os_servicos_pendentes (primeiros 5 e tipos) antes do algoritmo:")
-        for i, serv in enumerate(todos_os_servicos_pendentes[:5]): 
-            print(f"    Serviço {i} (ID Output: {serv['id_output']}):")
-            for k, v in serv.items():
-                if k in ["no_inicial_acesso", "no_final_apos_servico", "demanda", "custo_servico_proprio", "custo_travessia_interno"]:
-                    if not isinstance(v, (int, float)):
-                        print(f"      ALERTA TIPO SERVIÇO: {k} = {v} (tipo: {type(v)})")
+        # print("  DEBUG Main: Verificando todos_os_servicos_pendentes (primeiros 5 e tipos) antes do algoritmo:")
+        # for i, serv in enumerate(todos_os_servicos_pendentes[:5]): 
+        #     print(f"    Serviço {i} (ID Output: {serv['id_output']}):")
+        #     for k, v in serv.items():
+        #         if k in ["no_inicial_acesso", "no_final_apos_servico", "demanda", "custo_servico_proprio", "custo_travessia_interno"]:
+        #             if not isinstance(v, (int, float)):
+        #                 print(f"      ALERTA TIPO SERVIÇO: {k} = {v} (tipo: {type(v)})")
 
         # Verificação de alcançabilidade dos serviços a partir do depósito (usando APSP)
-        print(f"  DEBUG Main: Verificando alcançabilidade dos serviços a partir do depósito {depot_idx+1} (usando APSP)...")
+        print(f"  Verificando alcançabilidade dos serviços a partir do depósito {depot_idx+1} (usando APSP)...")
         unreachable_services_from_depot = []
         for serv in todos_os_servicos_pendentes:
             no_acesso = serv["no_inicial_acesso"]
@@ -169,7 +171,7 @@ def main():
             print(f"  ALERTA CONECTIVIDADE ({arquivo_nome}): Os seguintes serviços são INALCANÇÁVEIS do depósito: {', '.join(unreachable_services_from_depot)}")
             print(f"  Isso pode causar lentidão e rotas incompletas. Verifique a estrutura do grafo ou a lógica de leitura.")
         else:
-            print(f"  DEBUG Main: Todos os {len(todos_os_servicos_pendentes)} serviços são alcançáveis do depósito.")
+            print(f"  Todos os {len(todos_os_servicos_pendentes)} serviços são alcançáveis do depósito.")
 
 
         # 3. Chamar seu novo algoritmo construtivo

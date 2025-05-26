@@ -15,7 +15,7 @@ def ler_cabecalho(linhas):
     # O depósito é 1-indexed no arquivo, convertemos para 0-indexed para uso interno
     depot_node = int(depot_node_match.group(1)) - 1 if depot_node_match else 0 
     
-    print(f"DEBUG Leitura: Cabeçalho lido - N_Vertices={n_vertices}, Capacidade={capacidade}, Depósito={depot_node+1}")
+    # print(f"DEBUG Leitura: Cabeçalho lido - N_Vertices={n_vertices}, Capacidade={capacidade}, Depósito={depot_node+1}")
     return n_vertices, n_arestas, n_arcos, capacidade, depot_node
 
 def ler_vertices_requeridos_com_detalhes(linhas_secao_ren):
@@ -40,9 +40,9 @@ def ler_vertices_requeridos_com_detalhes(linhas_secao_ren):
                     "custo_servico": custo_servico
                 })
             except ValueError:
-                print(f"Aviso Leitura (ReN): Não foi possível parsear a linha: '{linha}'")
+                # print(f"Aviso Leitura (ReN): Não foi possível parsear a linha: '{linha}'")
                 continue
-    print(f"DEBUG Leitura: {len(vertices_detalhados)} vértices requeridos lidos.")
+    # print(f"DEBUG Leitura: {len(vertices_detalhados)} vértices requeridos lidos.")
     return vertices_detalhados
 
 def ler_ligacoes_requeridas_com_detalhes(linhas_secao, tipo_ligacao="aresta_req"):
@@ -70,9 +70,9 @@ def ler_ligacoes_requeridas_com_detalhes(linhas_secao, tipo_ligacao="aresta_req"
                     "tipo": tipo_ligacao
                 })
             except ValueError:
-                print(f"Aviso Leitura ({tipo_ligacao}): Não foi possível parsear a linha: '{linha}'")
+                # print(f"Aviso Leitura ({tipo_ligacao}): Não foi possível parsear a linha: '{linha}'")
                 continue
-    print(f"DEBUG Leitura: {len(ligacoes_detalhadas)} ligações requeridas ({tipo_ligacao}) lidas.")
+    # print(f"DEBUG Leitura: {len(ligacoes_detalhadas)} ligações requeridas ({tipo_ligacao}) lidas.")
     return ligacoes_detalhadas
 
 def ler_ligacoes_opcionais(linhas_secao):
@@ -90,10 +90,10 @@ def ler_ligacoes_opcionais(linhas_secao):
         if partes and not partes[0].replace('.','',1).isdigit():
             idx_offset = 1
             if len(partes) < 4: # Se tem ID, precisa de pelo menos 4 partes (ID, u, v, custo)
-                print(f"Aviso Leitura (Opcional - Formato): Linha muito curta para ID e dados: '{linha}'")
+                # print(f"Aviso Leitura (Opcional - Formato): Linha muito curta para ID e dados: '{linha}'")
                 continue
         elif len(partes) < 3: # Se não tem ID, precisa de pelo menos 3 partes (u, v, custo)
-            print(f"Aviso Leitura (Opcional - Formato): Linha muito curta para dados: '{linha}'")
+            # print(f"Aviso Leitura (Opcional - Formato): Linha muito curta para dados: '{linha}'")
             continue
         
         try:
@@ -102,9 +102,9 @@ def ler_ligacoes_opcionais(linhas_secao):
             custo = float(partes[idx_offset + 2])
             ligacoes.append((u, v, custo))
         except ValueError:
-            print(f"Aviso Leitura (Opcional - Valor): Não foi possível parsear a linha: '{linha}'")
+            # print(f"Aviso Leitura (Opcional - Valor): Não foi possível parsear a linha: '{linha}'")
             continue
-    print(f"DEBUG Leitura: {len(ligacoes)} ligações opcionais lidas.")
+    # print(f"DEBUG Leitura: {len(ligacoes)} ligações opcionais lidas.")
     return ligacoes
 
 def parse_dat_file(caminho_arquivo):
@@ -113,7 +113,7 @@ def parse_dat_file(caminho_arquivo):
     Retorna: matriz de adjacência, número de vértices, capacidade do veículo,
     índice do depósito, e listas detalhadas de serviços requeridos e ligações opcionais.
     """
-    print(f"DEBUG Leitura: Iniciando parse de '{caminho_arquivo}'")
+    # print(f"DEBUG Leitura: Iniciando parse de '{caminho_arquivo}'")
     with open(caminho_arquivo, 'r') as arquivo:
         linhas = [linha.strip() for linha in arquivo if linha.strip()]
 
@@ -175,13 +175,13 @@ def parse_dat_file(caminho_arquivo):
     for u, v, custo_t in arcos_opcionais_travessia:
         matriz[u][v] = min(matriz[u][v], custo_t) # Arcos são direcionais
 
-    print(f"DEBUG Leitura: Matriz de adjacência construída para {n_vertices} vértices.")
+    # print(f"DEBUG Leitura: Matriz de adjacência construída para {n_vertices} vértices.")
     # Exemplo de print da matriz (apenas uma amostra para não sobrecarregar)
     # for r_idx in range(min(5, n_vertices)):
     #     print(f"  Matriz linha {r_idx}: {[f'{val:.1f}' if val != math.inf else 'inf' for val in matriz[r_idx][:min(5, n_vertices)]]}...")
 
     # Retorna todas as informações parseadas
-    print(f"DEBUG Leitura: Parse de '{caminho_arquivo}' concluído. Retornando dados.")
+    # print(f"DEBUG Leitura: Parse de '{caminho_arquivo}' concluído. Retornando dados.")
     return (matriz, n_vertices, capacidade_veiculo, depot_idx,
             vertices_requeridos_detalhes, 
             arestas_requeridas_detalhes, 
