@@ -27,15 +27,15 @@ def main():
     salvar_solucao_para_este_arquivo = True # Flag para controlar o salvamento
 
     # --- Opção de processamento interativa ---
-    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 'todos' ou 'especifico'): ").strip().lower()
+    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 't' ou 'e'): ").strip().lower()
     
-    if escolha_processamento == 'todos':
+    if escolha_processamento == 't':
         print("Modo: Processando todos os arquivos .dat na pasta...")
         for arquivo_nome in os.listdir(pasta_instancias):
             if arquivo_nome.endswith(".dat"):
                 arquivos_para_processar.append(arquivo_nome)
         salvar_solucao_para_este_arquivo = True 
-    elif escolha_processamento == 'especifico':
+    elif escolha_processamento == 'e':
         arquivo_especifico_nome = input("Digite o NOME do arquivo .dat específico (ex: BHW1.dat): ").strip()
         if not arquivo_especifico_nome.lower().endswith(".dat"):
             arquivo_especifico_nome += ".dat"
