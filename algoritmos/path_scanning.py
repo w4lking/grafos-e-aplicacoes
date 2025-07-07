@@ -1,28 +1,22 @@
 # algoritmos/path_scanning.py
 import math
 import time
+from typing import List, Dict, Any
 from modelos.instancia import Instancia, VerticeRequerido, LigacaoRequerida
-from modelos.servico import Servico
+from modelos.servico import Servico # Import Servico aqui, pois este módulo o cria
 from modelos.solucao import Rota, Solucao
 
-# A função recebe a instância, não mais um monte de parâmetros soltos.
-def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[float]], arquivo_nome_debug: str = "") -> Solucao:
+def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: List[List[float]], arquivo_nome_debug: str = "") -> Solucao:
     inicio_execucao_ns = time.monotonic_ns()
     
-    # Converter os dados da instância em objetos Servico
-    todos_os_servicos_pendentes = []
-    id_servico_unico_contador = 0 # Inicia em 0, para ser um ID sequencial único
-
-    # NOTE: Os IDs de serviço (id_output) gerados aqui são sequenciais (0, 1, 2...).
-    # Se o professor espera IDs específicos do arquivo de entrada (ex: 'N4', 'E1', 'A1'),
-    # você precisará ajustar a leitura em 'leitura.py' para capturar esses IDs
-    # e usá-los como 'id_output' no objeto Servico.
+    todos_os_servicos_originais_para_criacao_servico_obj = []
+    id_servico_unico_contador = 0 
 
     for v_req in instancia.vertices_requeridos_detalhes:
-        todos_os_servicos_pendentes.append(Servico(
+        todos_os_servicos_originais_para_criacao_servico_obj.append(Servico(
             id_output=id_servico_unico_contador,
             tipo="no",
-            nome_original=f"N{v_req.no_idx + 1}", # Nome original (1-indexado) para referência/debug
+            nome_original=f"N{v_req.no_idx + 1}", 
             definicao_original=v_req,
             no_inicial_acesso=v_req.no_idx,
             no_final_apos_servico=v_req.no_idx,
@@ -33,14 +27,13 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
         id_servico_unico_contador += 1
     
     for a_req in instancia.arestas_requeridas_detalhes:
-        todos_os_servicos_pendentes.append(Servico(
+        todos_os_servicos_originais_para_criacao_servico_obj.append(Servico(
             id_output=id_servico_unico_contador,
             tipo="aresta",
-            # Exemplo de nome original para arestas: E_u_v (1-indexed)
             nome_original=f"E_{a_req.u+1}_{a_req.v+1}", 
             definicao_original=a_req, 
             no_inicial_acesso=a_req.u,
-            no_final_apos_servico=a_req.v, # Finaliza no 'v' da aresta (u,v)
+            no_final_apos_servico=a_req.v, 
             demanda=a_req.demanda,
             custo_servico_proprio=a_req.custo_servico,
             custo_travessia_interno=a_req.custo_travessia
@@ -48,61 +41,59 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
         id_servico_unico_contador += 1
 
     for arc_req in instancia.arcos_requeridos_detalhes:
-        todos_os_servicos_pendentes.append(Servico(
+        todos_os_servicos_originais_para_criacao_servico_obj.append(Servico(
             id_output=id_servico_unico_contador,
             tipo="arco",
-            # Exemplo de nome original para arcos: A_u_v (1-indexed)
             nome_original=f"A_{arc_req.u+1}_{arc_req.v+1}", 
             definicao_original=arc_req,
             no_inicial_acesso=arc_req.u,
-            no_final_apos_servico=arc_req.v, # Finaliza no 'v' do arco (u,v)
+            no_final_apos_servico=arc_req.v,
             demanda=arc_req.demanda,
             custo_servico_proprio=arc_req.custo_servico,
             custo_travessia_interno=arc_req.custo_travessia
         ))
         id_servico_unico_contador += 1
 
-    servicos_pendentes = [s for s in todos_os_servicos_pendentes] # Cria uma cópia mutável
-    rotas_finais_para_output: list[Rota] = []
+    servicos_pendentes = [s for s in todos_os_servicos_originais_para_criacao_servico_obj] 
+    rotas_finais_para_output: List[Rota] = []
     custo_geral_solucao = 0.0
     id_rota_contador = 0
-    DIA_ROTEIRIZACAO = 1 # Definido como 1 no exemplo do professor
+    DIA_ROTEIRIZACAO = 1 
 
-    # Variáveis para detectar loop infinito
     last_len_servicos_pendentes = len(servicos_pendentes)
     iterations_since_last_progress = 0
-    max_iterations_no_progress = len(todos_os_servicos_pendentes) + 5 # Um limite razoável
+    max_iterations_no_progress = len(todos_os_servicos_originais_para_criacao_servico_obj) + 5 
 
     while servicos_pendentes:
-        # Condição de parada para evitar loop infinito
         if iterations_since_last_progress >= max_iterations_no_progress:
             print(f"ALERTA ALGORITMO ({arquivo_nome_debug}): Algoritmo não fez progresso em {max_iterations_no_progress} iterações. Interrompendo. Serviços pendentes restantes: {len(servicos_pendentes)}")
-            break # Sai do loop principal
+            break 
 
         id_rota_contador += 1
         carga_atual_veiculo = 0.0
         custo_parcial_rota = 0.0
-        servicos_feitos_nesta_rota = set() # Usa o Servico.id_output para unicidade
-        sequencia_visitas_output_strings = [] # Guarda as strings "(D...)" e "(S...)"
+        servicos_feitos_nesta_rota_ids = set() # Guarda ids_output de serviços já contabilizados para demanda/custo
+        sequencia_visitas_output_strings = [] # Para a string final de saída
         
+        # NOVOS CAMPOS PARA A ROTA:
+        sequencia_servicos_atendidos_nesta_rota: List[Servico] = [] # Objetos Servico atendidos
+        sequencia_nos_percorridos_nesta_rota: List[int] = [instancia.depot_idx] # Nós visitados
+
         localizacao_actual = instancia.depot_idx
-        # Formato (D 0,1,1) no exemplo do professor: depósito é 0-indexado na string
         sequencia_visitas_output_strings.append(f"(D {instancia.depot_idx},{DIA_ROTEIRIZACAO},{id_rota_contador})")
 
         servicos_adicionados_nesta_iteracao_rota = 0 
-        while True: # Loop para construir a rota atual
+        while True: 
             melhor_candidato_info = None 
             
-            servicos_pendentes_para_busca = list(servicos_pendentes) # Copia para iteração segura
+            servicos_pendentes_para_busca = list(servicos_pendentes) 
             
-            # Se não há mais serviços para adicionar à rota atual ou no geral
             if not servicos_pendentes_para_busca:
                  break
 
-            for servico_potencial in servicos_pendentes_para_busca: # Itera sobre objetos Servico
+            for servico_potencial in servicos_pendentes_para_busca: 
                 no_acesso_servico = servico_potencial.no_inicial_acesso
                 
-                # Verificações de índice para evitar erros de acesso à matriz
                 if not (0 <= localizacao_actual < instancia.n_vertices and 0 <= no_acesso_servico < instancia.n_vertices):
                     continue 
                 
@@ -111,8 +102,7 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
                 demanda_adicional = 0
                 custo_servico_proprio_adicional = 0
                 
-                # Se o serviço ainda não foi contabilizado NESTA ROTA
-                if servico_potencial.id_output not in servicos_feitos_nesta_rota: 
+                if servico_potencial.id_output not in servicos_feitos_nesta_rota_ids: 
                     demanda_adicional = servico_potencial.demanda
                     custo_servico_proprio_adicional = servico_potencial.custo_servico_proprio
                 
@@ -128,7 +118,7 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
                 
                 if melhor_candidato_info is None or custo_total_insercao_candidato < melhor_candidato_info["custo_insercao"]:
                     melhor_candidato_info = {
-                        "servico": servico_potencial, # Armazena o objeto Servico completo
+                        "servico": servico_potencial, 
                         "custo_insercao": custo_total_insercao_candidato,
                         "custo_deslocamento_apenas": custo_deslocamento_ate_servico,
                     }
@@ -138,31 +128,58 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
             
             servico_escolhido = melhor_candidato_info["servico"]
             
-            # Remove o objeto Servico da lista original `servicos_pendentes`
+            # Reconstruir o caminho de nós do ponto atual até o início do serviço
+            # Isso é para 'sequencia_nos_percorridos'. Para isso, o Floyd-Warshall padrão não dá o caminho,
+            # apenas o custo. Você precisaria de um Floyd-Warshall modificado para predecessores
+            # ou um Dijkstra para cada trecho para obter o caminho.
+            # Por simplicidade inicial, vamos adicionar apenas o nó de acesso e o nó final do serviço.
+            # Idealmente, aqui você adicionaria os nós intermediários do shortest path.
+            
+            # --- Inserção dos nós intermediários do caminho de deslocamento ---
+            # Para obter os nós intermediários do caminho mais curto, você precisaria de uma versão
+            # do algoritmo de caminho mais curto (como Dijkstra ou uma versão modificada de Floyd-Warshall)
+            # que também retorna os predecessores. Se não quiser complicar muito agora,
+            # apenas adicione o nó de destino (no_acesso_servico).
+            # Para uma implementação mais robusta, você pode usar uma função de reconstrução de caminho:
+            # path_nodes = reconstruir_caminho_dijkstra(matriz_adj_original, localizacao_actual, no_acesso_servico)
+            # sequencia_nos_percorridos_nesta_rota.extend(path_nodes[1:]) # Ignora o nó inicial, já está lá
+
+            # Para esta fase, vamos manter a adição dos nós principais por enquanto:
+            if localizacao_actual != servico_escolhido.no_inicial_acesso: # Evita duplicar o nó se já estivermos lá
+                sequencia_nos_percorridos_nesta_rota.append(servico_escolhido.no_inicial_acesso)
+            
+            # Remova o objeto Servico da lista original `servicos_pendentes`
             try:
                 servicos_pendentes.remove(servico_escolhido)
                 servicos_adicionados_nesta_iteracao_rota += 1
             except ValueError:
-                # Caso o serviço já tenha sido removido por algum motivo inesperado.
                 break 
 
             custo_parcial_rota += melhor_candidato_info["custo_deslocamento_apenas"]
             
-            if servico_escolhido.id_output not in servicos_feitos_nesta_rota:
+            if servico_escolhido.id_output not in servicos_feitos_nesta_rota_ids:
                 carga_atual_veiculo += servico_escolhido.demanda
                 custo_parcial_rota += servico_escolhido.custo_servico_proprio
-                servicos_feitos_nesta_rota.add(servico_escolhido.id_output) # Adiciona o id_output
+                servicos_feitos_nesta_rota_ids.add(servico_escolhido.id_output) 
             
             custo_parcial_rota += servico_escolhido.custo_travessia_interno
             
+            # Adicionar o serviço ao vetor de serviços atendidos pela rota
+            sequencia_servicos_atendidos_nesta_rota.append(servico_escolhido)
+
+            # Adicionar o nó final do serviço ao trajeto percorrido
+            if servico_escolhido.tipo == "no":
+                if servico_escolhido.no_inicial_acesso != servico_escolhido.no_final_apos_servico: # Se fosse um nó que tem um "fim" diferente
+                    sequencia_nos_percorridos_nesta_rota.append(servico_escolhido.no_final_apos_servico)
+            elif servico_escolhido.tipo == "aresta" or servico_escolhido.tipo == "arco":
+                sequencia_nos_percorridos_nesta_rota.append(servico_escolhido.no_final_apos_servico)
+
             # Formatação para string de saída: ID do serviço (0-indexado), nós (1-indexados)
             id_s_output = servico_escolhido.id_output 
             if servico_escolhido.tipo == "no":
-                # Nós 1-indexados na string S
                 no_idx_output_1_indexed = servico_escolhido.definicao_original.no_idx + 1 
                 sequencia_visitas_output_strings.append(f"(S {id_s_output},{no_idx_output_1_indexed},{no_idx_output_1_indexed})")
             elif servico_escolhido.tipo == "aresta" or servico_escolhido.tipo == "arco":
-                # Nós 1-indexados na string S
                 u_output_1_indexed = servico_escolhido.definicao_original.u + 1
                 v_output_1_indexed = servico_escolhido.definicao_original.v + 1
                 sequencia_visitas_output_strings.append(f"(S {id_s_output},{u_output_1_indexed},{v_output_1_indexed})")
@@ -177,7 +194,7 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
             else:
                 pass 
             
-            # Formato (D 0,1,1) no exemplo do professor: depósito é 0-indexado na string
+            sequencia_nos_percorridos_nesta_rota.append(instancia.depot_idx) # Adiciona o retorno ao depósito final
             sequencia_visitas_output_strings.append(f"(D {instancia.depot_idx},{DIA_ROTEIRIZACAO},{id_rota_contador})")
             
             # Cria um objeto Rota
@@ -187,31 +204,27 @@ def meu_algoritmo_construtivo(instancia: Instancia, distancias_apsp: list[list[f
                     demanda_total_rota=carga_atual_veiculo,
                     custo_total_rota=custo_parcial_rota,
                     total_visitas=len(sequencia_visitas_output_strings),
+                    sequencia_nos_percorridos=sequencia_nos_percorridos_nesta_rota,
+                    servicos_atendidos=sequencia_servicos_atendidos_nesta_rota,
                     trajeto_string_output=" ".join(sequencia_visitas_output_strings)
                 )
             )
             custo_geral_solucao += custo_parcial_rota
 
-            # Resetar contador de progresso
             iterations_since_last_progress = 0
-            last_len_servicos_pendentes = len(servicos_pendentes) # Atualiza o último tamanho conhecido
-        else: # Rota vazia (não adicionou nenhum serviço)
-            id_rota_contador -= 1 # Decrementa para não ter IDs de rota vazios
-            
-            # Aumenta o contador de iterações sem progresso
+            last_len_servicos_pendentes = len(servicos_pendentes) 
+        else: # Rota vazia
+            id_rota_contador -= 1 
             iterations_since_last_progress += 1
-            
-            # Se não há mais serviços pendentes, o loop principal vai terminar de qualquer forma
             if not servicos_pendentes: 
                 break 
             
     fim_execucao_ns = time.monotonic_ns()
     tempo_total_s = (fim_execucao_ns - inicio_execucao_ns) / 1e9
     
-    # GARANTIR QUE CLOCKS NÃO É ZERO PARA INSTÂNCIAS MUITO RÁPIDAS
     clocks_execucao = fim_execucao_ns - inicio_execucao_ns
-    if clocks_execucao == 0 and len(todos_os_servicos_pendentes) > 0: # Apenas se há serviços e o tempo foi 0
-        clocks_execucao = 1 # Define um mínimo de 1 nanossegundo para evitar zero absoluto
+    if clocks_execucao == 0 and len(todos_os_servicos_originais_para_criacao_servico_obj) > 0: 
+        clocks_execucao = 1 
 
 
     return Solucao(

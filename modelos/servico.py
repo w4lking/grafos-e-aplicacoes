@@ -16,7 +16,6 @@ class Servico:
 
     # __hash__ e __eq__ são importantes se você for colocar objetos Servico em sets ou dicionários
     # e quiser que eles sejam considerados iguais se seus IDs de saída forem iguais.
-    # No entanto, para a remoção da lista de pendentes, a comparação por id_output é suficiente.
     def __hash__(self):
         return hash(self.id_output) # IDs de saída são únicos, então serve como hash
 

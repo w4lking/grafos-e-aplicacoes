@@ -2,7 +2,7 @@
 import os
 import sys
 import time
-import math # Ainda importamos, pois math.inf pode ser usado em algumas lógicas
+import math 
 
 # Configura o sys.path para encontrar os módulos na raiz do projeto
 current_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,32 +13,33 @@ sys.path.insert(0, project_root_dir)
 from leitura import parse_dat_file
 from algoritmos.floyd_warshall import floyd_warshall
 from algoritmos.path_scanning import meu_algoritmo_construtivo
+from algoritmos.busca_local import otimizar_solucao # Importa a nova função de otimização
 from modelos.instancia import Instancia, VerticeRequerido, LigacaoRequerida 
 from modelos.solucao import Solucao, Rota 
 
 def main():
     pasta_instancias = os.path.join(current_file_dir, "dados", "MCGRP")
-    pasta_saida = os.path.join(current_file_dir, "solucoes")
+    pasta_saida = os.path.join(current_file_dir, "G20")
     os.makedirs(pasta_saida, exist_ok=True)
 
     print(f"Buscando instâncias em: {pasta_instancias}")
 
     arquivos_para_processar = []
-    salvar_solucao_para_este_arquivo = True # Flag para controlar o salvamento
+    salvar_solucao_para_este_arquivo = True 
 
     # --- Opção de processamento interativa ---
-    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 'todos' ou 'especifico'): ").strip().lower()
+    escolha_processamento = input("Deseja processar TODOS os arquivos (.dat) ou um ESPECÍFICO? (digite 't' ou 'e'): ").strip().lower()
     
-    if escolha_processamento == 'todos':
+    if escolha_processamento == 't':
         print("Modo: Processando todos os arquivos .dat na pasta...")
         for arquivo_nome in os.listdir(pasta_instancias):
             if arquivo_nome.endswith(".dat"):
                 arquivos_para_processar.append(arquivo_nome)
         salvar_solucao_para_este_arquivo = True 
-    elif escolha_processamento == 'especifico':
+    elif escolha_processamento == 'e':
         arquivo_especifico_nome = input("Digite o NOME do arquivo .dat específico (ex: BHW1.dat): ").strip()
         if not arquivo_especifico_nome.lower().endswith(".dat"):
-            arquivo_especifico_nome += ".dat"
+            arquivo_especifico_nome += ".dat" 
         
         caminho_arquivo_especifico = os.path.join(pasta_instancias, arquivo_especifico_nome)
         if os.path.exists(caminho_arquivo_especifico):
@@ -119,24 +120,34 @@ def main():
         else:
             print(f"  Todos os {len(all_required_elements)} serviços requeridos são alcançáveis do depósito.")
 
-        # 3. Chamar seu algoritmo construtivo (otimizador)
+        # 3. Gerar a solução inicial (Fase 2)
         try:
-            solucao: Solucao = meu_algoritmo_construtivo(
+            solucao_inicial: Solucao = meu_algoritmo_construtivo(
                 instancia=instancia, 
                 distancias_apsp=distancias_apsp, 
                 arquivo_nome_debug=arquivo_nome
             )
-            print(f"  Solução construída: Custo={solucao.custo_total_solucao:.2f}, Rotas={solucao.num_rotas_solucao}, Tempo={solucao.tempo_total_s:.4f}s")
-            # DEBUG: Imprime o valor de clocks_execucao antes de escrever no arquivo
-            print(f"  DEBUG_MAIN ({arquivo_nome}): Clocks para Escrita (int): {int(solucao.clocks_execucao)}")
+            print(f"  Solução inicial construída: Custo={solucao_inicial.custo_total_solucao:.2f}, Rotas={solucao_inicial.num_rotas_solucao}, Tempo={solucao_inicial.tempo_total_s:.4f}s")
+            
+            # 4. (Fase 3) Otimizar a solução usando busca local
+            print("  Aplicando otimização por busca local (Fase 3)...")
+            solucao_otimizada: Solucao = otimizar_solucao(
+                solucao_inicial=solucao_inicial, # Passa a solução gerada pelo construtivo
+                instancia=instancia, 
+                distancias_apsp=distancias_apsp
+            )
+            print(f"  Solução OTIMIZADA: Custo={solucao_otimizada.custo_total_solucao:.2f}, Rotas={solucao_otimizada.num_rotas_solucao}, Tempo={solucao_otimizada.tempo_total_s:.4f}s")
+
+            # A solução final para escrita será a otimizada
+            solucao_final_para_escrita = solucao_otimizada 
 
         except Exception as e:
-            print(f"  ERRO ao executar o algoritmo construtivo para {arquivo_nome}: {e}")
+            print(f"  ERRO ao executar o algoritmo ou otimizador para {arquivo_nome}: {e}")
             import traceback
             traceback.print_exc()
             continue
 
-        # 4. Escrita no arquivo de saída (condicional ao modo e escolha do usuário)
+        # 5. Escrita no arquivo de saída (condicional ao modo e escolha do usuário)
         if salvar_solucao_para_este_arquivo:
             nome_arquivo_saida = f"sol-{os.path.splitext(arquivo_nome)[0]}.dat"
             caminho_saida = os.path.join(pasta_saida, nome_arquivo_saida)
@@ -144,20 +155,20 @@ def main():
             try:
                 with open(caminho_saida, "w") as f_out:
                     # Linhas de cabeçalho da solução
-                    f_out.write(f"{solucao.custo_total_solucao:.2f}\n")
-                    f_out.write(f"{solucao.num_rotas_solucao}\n")
-                    f_out.write(f"{int(solucao.clocks_execucao)}\n") 
-                    f_out.write(f"{int(solucao.tempo_total_s * 1e9)}\n")
+                    f_out.write(f"{solucao_final_para_escrita.custo_total_solucao:.2f}\n")
+                    f_out.write(f"{solucao_final_para_escrita.num_rotas_solucao}\n")
+                    f_out.write(f"{int(solucao_final_para_escrita.clocks_execucao)}\n") 
+                    f_out.write(f"{int(solucao_final_para_escrita.tempo_total_s * 1e9)}\n")
 
                     # Detalhes de cada rota
-                    for rota_info in solucao.rotas:
-                        # Formato CORRIGIDO para bater com a imagem do professor (image_9374dd.png):
+                    for rota_info in solucao_final_para_escrita.rotas:
+                        # Formato CORRIGIDO para bater com a imagem do professor:
                         # PREFIX_0 PREFIX_1 ID_ROTA DEMANDA CUSTO TOTAL_VISITAS TRAJETORY_STRING
                         # PREFIX_0 = depot_idx (0-indexed)
                         # PREFIX_1 = DIA_ROTEIRIZACAO (1)
                         f_out.write(
                             f"{instancia.depot_idx} {1} {rota_info.id_rota_output} "
-                            f"{rota_info.demanda_total_rota:.0f} {rota_info.custo_total_rota:.2f} " # Demanda e Custo
+                            f"{rota_info.demanda_total_rota:.0f} {rota_info.custo_total_rota:.2f} " 
                             f"{rota_info.total_visitas} {rota_info.trajeto_string_output}\n"
                         )
                 print(f"  Solução salva em: {caminho_saida}")
